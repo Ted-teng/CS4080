@@ -1,2 +1,2 @@
-# 26F_CS4080
+# CS4080 Homework 1
 Homework

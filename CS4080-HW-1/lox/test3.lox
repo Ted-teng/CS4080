@@ -1,0 +1,12 @@
+// ==========================================
+// CS4080 Chapter 3 Challenge: Lox Edge Cases
+// ==========================================
+
+print "Test 1 == 1:";
+print 1 == "1";
+
+print "nil == nil:";
+print nil == nil;
+
+print "nil == false:";
+print nil == false;

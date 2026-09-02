@@ -1,0 +1,10 @@
+// ==========================================
+// CS4080 Chapter 3 Challenge: Lox Edge Cases
+// ==========================================
+
+
+print "=== Test 2: Division by Zero ===";
+// Expected: Error or Infinity based on double-precision floating-point standard.
+// Actual: Infinity
+print 10 / 0;
+

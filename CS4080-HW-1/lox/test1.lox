@@ -1,0 +1,9 @@
+// ==========================================
+// CS4080 Chapter 3 Challenge: Lox Edge Cases
+// ==========================================
+
+print "=== Test 1: Mixed-Type Addition ===";
+// Expected: Runtime error because Lox does not perform implicit type coercion.
+// Actual: "Operands must be two numbers or two strings."
+print "Score: " + 10;
+

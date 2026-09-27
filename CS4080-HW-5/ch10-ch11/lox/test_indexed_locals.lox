@@ -1,0 +1,31 @@
+// Test Chapter 11 Challenge 4: indexed local-variable resolution.
+
+fun makeCounter() {
+  var label = "count";
+  var count = 0;
+
+  fun increment() {
+    count = count + 1;
+    print label;
+    print count;
+  }
+
+  return increment;
+}
+
+var counter = makeCounter();
+counter();
+counter();
+
+{
+  var first = "first";
+  var second = "second";
+  var third = "third";
+
+  print first;
+  print second;
+  print third;
+
+  second = "updated";
+  print second;
+}

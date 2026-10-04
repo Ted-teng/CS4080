@@ -1,0 +1,11 @@
+class A {
+  method() {
+    print "before";
+    inner();
+    print "after";
+  }
+}
+
+class B < A {}
+
+B().method();

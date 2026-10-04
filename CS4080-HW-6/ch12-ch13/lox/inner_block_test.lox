@@ -1,0 +1,13 @@
+class A {
+  method() {
+    print "A only";
+  }
+}
+
+class B < A {
+  method() {
+    print "B";
+  }
+}
+
+B().method();

@@ -1,0 +1,36 @@
+print "=== Chapter 12 Test ===";
+
+class Person {
+  init(first, last) {
+    this.first = first;
+    this.last = last;
+  }
+
+  fullName {
+    return this.first + " " + this.last;
+  }
+
+  greet() {
+    print "Hello " + this.fullName;
+  }
+}
+
+var p = Person("Bob", "Smith");
+
+print p.first;
+print p.last;
+print p.fullName;
+p.greet();
+
+class Math {
+  class square(n) {
+    return n * n;
+  }
+
+  class add(a, b) {
+    return a + b;
+  }
+}
+
+print Math.square(3);
+print Math.add(2, 5);

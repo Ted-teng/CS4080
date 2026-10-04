@@ -1,0 +1,21 @@
+class A {
+  method() {
+    print "A";
+    inner();
+  }
+}
+
+class B < A {
+  method() {
+    print "B";
+    inner();
+  }
+}
+
+class C < B {
+  method() {
+    print "C";
+  }
+}
+
+C().method();

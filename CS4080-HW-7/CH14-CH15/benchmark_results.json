@@ -1,0 +1,26 @@
+{
+  "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+  "compiler": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0",
+  "flags": "-std=c99 -O2 -Wall -Wextra -DCLOX_BENCHMARK",
+  "negates_per_trial": 67108864,
+  "baseline": [
+    0.384462,
+    0.377293,
+    0.373507,
+    0.378313,
+    0.402715,
+    0.382095,
+    0.374798
+  ],
+  "in_place": [
+    0.204492,
+    0.201646,
+    0.200143,
+    0.195672,
+    0.198595,
+    0.200739,
+    0.195607
+  ],
+  "baseline_median": 0.378313,
+  "in_place_median": 0.200143
+}

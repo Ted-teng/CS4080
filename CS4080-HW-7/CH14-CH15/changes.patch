@@ -1,0 +1,305 @@
+--- original/chunk.c
++++ chap15_virtual/chunk.c
+@@ -1,4 +1,5 @@
+ #include <stdlib.h>
++#include <stdio.h>
+ 
+ #include "chunk.h"
+ #include "memory.h"
+@@ -8,11 +9,13 @@
+   chunk->capacity = 0;
+   chunk->code = NULL;
+   chunk->lines = NULL;
++  chunk->lineCount = 0;
++  chunk->lineCapacity = 0;
+   initValueArray(&chunk->constants);
+ }
+ void freeChunk(Chunk* chunk) {
+   FREE_ARRAY(uint8_t, chunk->code, chunk->capacity);
+-  FREE_ARRAY(int, chunk->lines, chunk->capacity);
++  FREE_ARRAY(LineStart, chunk->lines, chunk->lineCapacity);
+   freeValueArray(&chunk->constants);
+   initChunk(chunk);
+ }
+@@ -22,15 +25,49 @@
+     chunk->capacity = GROW_CAPACITY(oldCapacity);
+     chunk->code = GROW_ARRAY(uint8_t, chunk->code,
+         oldCapacity, chunk->capacity);
+-    chunk->lines = GROW_ARRAY(int, chunk->lines,
+-        oldCapacity, chunk->capacity);
++
+   }
+ 
+   chunk->code[chunk->count] = byte;
+-  chunk->lines[chunk->count] = line;
++  if (chunk->lineCount == 0 ||
++      chunk->lines[chunk->lineCount - 1].line != line) {
++    if (chunk->lineCapacity < chunk->lineCount + 1) {
++      int oldCapacity = chunk->lineCapacity;
++      chunk->lineCapacity = GROW_CAPACITY(oldCapacity);
++      chunk->lines = GROW_ARRAY(LineStart, chunk->lines,
++          oldCapacity, chunk->lineCapacity);
++    }
++    chunk->lines[chunk->lineCount++] = (LineStart){chunk->count, line};
++  }
+   chunk->count++;
+ }
+ int addConstant(Chunk* chunk, Value value) {
+   writeValueArray(&chunk->constants, value);
+   return chunk->constants.count - 1;
+ }
++
++int getLine(Chunk* chunk, int offset) {
++  if (offset < 0 || offset >= chunk->count) return -1;
++  for (int i = chunk->lineCount - 1; i >= 0; i--) {
++    if (offset >= chunk->lines[i].offset) return chunk->lines[i].line;
++  }
++  return -1;
++}
++
++// Chapter 14, Challenge 2: Use three operand bytes only when needed.
++void writeConstant(Chunk* chunk, Value value, int line) {
++  if (chunk->constants.count > 0xffffff) {
++    fprintf(stderr, "Too many constants in one chunk.\n");
++    exit(1);
++  }
++  int index = addConstant(chunk, value);
++  if (index <= UINT8_MAX) {
++    writeChunk(chunk, OP_CONSTANT, line);
++    writeChunk(chunk, (uint8_t)index, line);
++  } else {
++    writeChunk(chunk, OP_CONSTANT_LONG, line);
++    writeChunk(chunk, (uint8_t)index, line);
++    writeChunk(chunk, (uint8_t)(index >> 8), line);
++    writeChunk(chunk, (uint8_t)(index >> 16), line);
++  }
++}
+--- original/chunk.h
++++ chap15_virtual/chunk.h
+@@ -6,6 +6,7 @@
+ 
+ typedef enum {
+   OP_CONSTANT,
++  OP_CONSTANT_LONG,
+   OP_ADD,
+   OP_SUBTRACT,
+   OP_MULTIPLY,
+@@ -14,17 +15,27 @@
+   OP_RETURN,
+ } OpCode;
+ 
++// Chapter 14, Challenge 1: Store the start of each line run.
++typedef struct {
++  int offset;
++  int line;
++} LineStart;
++
+ typedef struct {
+   int count;
+   int capacity;
+   uint8_t* code;
+-  int* lines;
++  LineStart* lines;
++  int lineCount;
++  int lineCapacity;
+   ValueArray constants;
+ } Chunk;
+ 
+ void initChunk(Chunk* chunk);
+ void freeChunk(Chunk* chunk);
+ void writeChunk(Chunk* chunk, uint8_t byte, int line);
++int getLine(Chunk* chunk, int offset);
++void writeConstant(Chunk* chunk, Value value, int line);
+ int addConstant(Chunk* chunk, Value value);
+ 
+ #endif
+--- original/debug.c
++++ chap15_virtual/debug.c
+@@ -18,6 +18,16 @@
+   printf("'\n");
+   return offset + 2;
+ }
++// Chapter 14, Challenge 2: Decode the little-endian operand.
++static int longConstantInstruction(Chunk* chunk, int offset) {
++  uint32_t index = (uint32_t)chunk->code[offset + 1] |
++      ((uint32_t)chunk->code[offset + 2] << 8) |
++      ((uint32_t)chunk->code[offset + 3] << 16);
++  printf("%-16s %4u '", "OP_CONSTANT_LONG", (unsigned)index);
++  printValue(chunk->constants.values[index]);
++  printf("'\n");
++  return offset + 4;
++}
+ static int simpleInstruction(const char* name, int offset) {
+   printf("%s\n", name);
+   return offset + 1;
+@@ -25,16 +35,18 @@
+ int disassembleInstruction(Chunk* chunk, int offset) {
+   printf("%04d ", offset);
+   if (offset > 0 &&
+-      chunk->lines[offset] == chunk->lines[offset - 1]) {
++      getLine(chunk, offset) == getLine(chunk, offset - 1)) {
+     printf("   | ");
+   } else {
+-    printf("%4d ", chunk->lines[offset]);
++    printf("%4d ", getLine(chunk, offset));
+   }
+ 
+   uint8_t instruction = chunk->code[offset];
+   switch (instruction) {
+     case OP_CONSTANT:
+       return constantInstruction("OP_CONSTANT", chunk, offset);
++    case OP_CONSTANT_LONG:
++      return longConstantInstruction(chunk, offset);
+     case OP_ADD:
+       return simpleInstruction("OP_ADD", offset);
+     case OP_SUBTRACT:
+--- original/main.c
++++ chap15_virtual/main.c
+@@ -9,19 +9,13 @@
+   Chunk chunk;
+   initChunk(&chunk);
+ 
+-  int constant = addConstant(&chunk, 1.2);
+-  writeChunk(&chunk, OP_CONSTANT, 123);
+-  writeChunk(&chunk, constant, 123);
++  writeConstant(&chunk, 1.2, 123);
+ 
+-  constant = addConstant(&chunk, 3.4);
+-  writeChunk(&chunk, OP_CONSTANT, 123);
+-  writeChunk(&chunk, constant, 123);
++  writeConstant(&chunk, 3.4, 123);
+ 
+   writeChunk(&chunk, OP_ADD, 123);
+ 
+-  constant = addConstant(&chunk, 5.6);
+-  writeChunk(&chunk, OP_CONSTANT, 123);
+-  writeChunk(&chunk, constant, 123);
++  writeConstant(&chunk, 5.6, 123);
+ 
+   writeChunk(&chunk, OP_DIVIDE, 123);
+   writeChunk(&chunk, OP_NEGATE, 123);
+--- original/vm.c
++++ chap15_virtual/vm.c
+@@ -1,4 +1,7 @@
+ #include <stdio.h>
++#include <stdlib.h>
++
++#include "memory.h"
+ 
+ #include "common.h"
+ #include "debug.h"
+@@ -6,22 +9,35 @@
+ 
+ VM vm; // [one]
+ static void resetStack() {
+-  vm.stackTop = vm.stack;
++  vm.stackCount = 0;
+ }
+ 
+ void initVM() {
++  vm.stack = NULL;
++  vm.stackCapacity = 0;
+   resetStack();
+ }
+ 
+ void freeVM() {
++  FREE_ARRAY(Value, vm.stack, vm.stackCapacity);
++  vm.stack = NULL;
++  vm.stackCapacity = 0;
++  resetStack();
+ }
+ void push(Value value) {
+-  *vm.stackTop = value;
+-  vm.stackTop++;
++  if (vm.stackCount == vm.stackCapacity) {
++    size_t oldCapacity = vm.stackCapacity;
++    if (oldCapacity > SIZE_MAX / sizeof(Value) / 2) {
++      fprintf(stderr, "Stack is too large.\n");
++      exit(1);
++    }
++    vm.stackCapacity = GROW_CAPACITY(oldCapacity);
++    vm.stack = GROW_ARRAY(Value, vm.stack, oldCapacity, vm.stackCapacity);
++  }
++  vm.stack[vm.stackCount++] = value;
+ }
+ Value pop() {
+-  vm.stackTop--;
+-  return *vm.stackTop;
++  return vm.stack[--vm.stackCount];
+ }
+ static InterpretResult run() {
+ #define READ_BYTE() (*vm.ip++)
+@@ -36,7 +52,7 @@
+   for (;;) {
+ #ifdef DEBUG_TRACE_EXECUTION
+     printf("          ");
+-    for (Value* slot = vm.stack; slot < vm.stackTop; slot++) {
++    for (Value* slot = vm.stack; slot < vm.stack + vm.stackCount; slot++) {
+       printf("[ ");
+       printValue(*slot);
+       printf(" ]");
+@@ -53,14 +69,32 @@
+         push(constant);
+         break;
+       }
++      case OP_CONSTANT_LONG: {
++        uint32_t index = READ_BYTE();
++        index |= (uint32_t)READ_BYTE() << 8;
++        index |= (uint32_t)READ_BYTE() << 16;
++        push(vm.chunk->constants.values[index]);
++        break;
++      }
+       case OP_ADD:      BINARY_OP(+); break;
+       case OP_SUBTRACT: BINARY_OP(-); break;
+       case OP_MULTIPLY: BINARY_OP(*); break;
+       case OP_DIVIDE:   BINARY_OP(/); break;
+-      case OP_NEGATE:   push(-pop()); break;
++      case OP_NEGATE:
++        // Chapter 15, Challenge 4: Keep the stack height unchanged.
++#ifdef CLOX_BASELINE_NEGATE
++        push(-pop());
++#else
++        vm.stack[vm.stackCount - 1] = -vm.stack[vm.stackCount - 1];
++#endif
++        break;
+       case OP_RETURN: {
++#ifdef CLOX_BENCHMARK
++        vm.result = pop();
++#else
+         printValue(pop());
+         printf("\n");
++#endif
+         return INTERPRET_OK;
+       }
+     }
+@@ -77,6 +111,7 @@
+   if (b) hack(false);
+ }
+ InterpretResult interpret(Chunk* chunk) {
++  resetStack();
+   vm.chunk = chunk;
+   vm.ip = vm.chunk->code;
+   return run();
+--- original/vm.h
++++ chap15_virtual/vm.h
+@@ -4,13 +4,17 @@
+ #include "chunk.h"
+ #include "value.h"
+ 
+-#define STACK_MAX 256
+ 
+ typedef struct {
+   Chunk* chunk;
+   uint8_t* ip;
+-  Value stack[STACK_MAX];
+-  Value* stackTop;
++  // Chapter 15, Challenge 3: Indices remain valid when the stack moves.
++  Value* stack;
++  size_t stackCount;
++  size_t stackCapacity;
++#ifdef CLOX_BENCHMARK
++  Value result;
++#endif
+ } VM;
+ 
+ typedef enum {

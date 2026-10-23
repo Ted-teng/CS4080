@@ -1,0 +1,14 @@
+# Local build products only; keep all source and benchmark data.
+clox
+clox.exe
+tests
+tests.exe
+bench_lookup
+bench_lookup.exe
+bench_strings
+bench_strings.exe
+bench_churn
+bench_churn.exe
+*.o
+*.obj
+__pycache__/

@@ -1,0 +1,12 @@
+*.exe
+*.o
+*.obj
+/clox
+/check_bytecode
+/clox_linear
+/clox_debug
+/clox_sanitize
+/bench_hash
+/bench_linear
+/show_encoding
+__pycache__/

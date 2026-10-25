@@ -1,0 +1,6 @@
+clox
+clox.exe
+tests
+tests.exe
+*.o
+__pycache__/

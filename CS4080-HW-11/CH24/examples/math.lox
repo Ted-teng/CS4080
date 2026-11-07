@@ -1,0 +1,6 @@
+//ch 24 challenge 4 (use native math inside an ordinary Lox function)
+fun distance(x, y) {
+  return sqrt(x * x + y * y);
+}
+print distance(3, 4);
+print abs(-12.5);

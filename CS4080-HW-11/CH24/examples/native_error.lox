@@ -1,0 +1,8 @@
+//ch 24 challenge 3 (report a native type error with the Lox call stack)
+fun root(value) {
+  return sqrt(value);
+}
+fun calculate() {
+  return root("nine");
+}
+calculate();

@@ -1,0 +1,7 @@
+//ch 24 challenge 4 (inspect text length and value types)
+var message = "Tea is ready.";
+print len(message);
+print type(message);
+print type(42);
+print type(nil);
+print type(clock);

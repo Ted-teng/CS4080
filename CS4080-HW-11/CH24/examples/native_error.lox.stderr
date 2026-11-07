@@ -1,0 +1,4 @@
+sqrt() expects a number.
+[line 3] in root()
+[line 6] in calculate()
+[line 8] in script

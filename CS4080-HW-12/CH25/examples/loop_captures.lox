@@ -1,0 +1,10 @@
+//ch 25 challenge 2 (the two closures capture different iterations)
+var first;
+var second;
+for (var i = 1; i <= 2; i = i + 1) {
+  fun read() { return i; }
+  if (i == 1) first = read;
+  else second = read;
+}
+print first();
+print second();

@@ -1,0 +1,8 @@
+clox
+clox.exe
+clox_baseline
+clox_baseline.exe
+clox_sanitize
+clox_sanitize.exe
+__pycache__/
+*.o

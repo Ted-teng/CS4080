@@ -1,0 +1,12 @@
+clox
+clox_baseline
+clox_rc
+header_probe
+test_epoch
+test_baseline
+test_rc
+test_sanitize
+test_sanitize_rc
+*.exe
+*.o
+__pycache__/
